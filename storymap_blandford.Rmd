@@ -1,0 +1,90 @@
+---
+title: "Blandford Tree Inventory"
+output: 
+  flexdashboard::flex_dashboard:
+    theme: united
+    storyboard: true
+    social: menu
+    source: embed
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard); library(tidyverse); library(googlesheets); library(leaflet);library(lubridate)
+blandford_trees <- 
+  gs_key("10lt4MB4CF6VeXLKZZwYtyL3WXHpFZMzk9nX7-HvxyNE") %>% 
+  gs_read(ws = 1) %>%
+  mutate_at(
+    .vars = vars(ends_with("_at")),
+    .funs = list(~ymd_hms(.))
+  )
+
+tree_photo_key <-
+  gs_key("1JdjMalJ1vmipcq-1Wn0S92IYCKlORKjqdvRSfFuRZ30") %>% 
+  gs_read(ws = 1)
+```
+
+### Geomapping trees at Blandford {data-commentary-width=400}
+
+```{r}
+factpal <- colorFactor("Paired", blandford_trees$tree_species)
+
+blandford_trees %>%
+  mutate(
+    popup_label = paste0(
+      "<b>Diameter: </b>", diameter,"<br/>",
+      "<b>Species: </b>", tree_species,"<br/>",
+      "<b>Condition: </b>", condition
+    )
+  ) %>%
+  leaflet() %>%
+  # Provider Options: Esri.WorldImagery, Stamen.TonerLite
+  addProviderTiles(providers$Esri.WorldTopoMap) %>%  
+  addCircleMarkers(
+    lng=~longitude, 
+    lat=~latitude,
+    popup=~popup_label,
+    radius = ~log(diameter)+1,
+    color = ~factpal(tree_species),
+    # stroke = FALSE, 
+    fillOpacity = 0.5
+  ) %>%
+  addLegend(
+    "bottomright", 
+    pal = factpal, 
+    values = ~tree_species,
+    title = "Tree species",
+    opacity = 1
+  )
+```
+
+***
+
+This tree map shows the exact coordinates of the trees that were mapped, and the area that the types of trees generally grow in. As I moved from one portion of the forest to another, different trees began making their appearances, accompanying the trees that were previously present. In the section where there are the most trees, there were primarily maple trees and beech trees, but as I progressed, oaks and dogwoods began to show up. The alternating colors within the map each represent a different species of tree. This helps show the differentiating species in a given area. Additionally, when you place the cursor on a tree, it gives the species, diameter, and the condition of the tree. The legend on the side shows the types of species represented by each color.
+
+### Range of tree diameter {data-commentary-width=400}
+
+```{r}
+library(plotly)
+blandford_trees %>%
+  plot_ly(
+    x = ~diameter,
+    color = ~tree_species,
+    alpha = 0.6
+  ) %>%
+  add_boxplot() %>%
+  layout(barmode = "overlay")
+```
+
+***
+
+The purpose of this graph is to show the size of each type of tree mapped in the given area. The legend depicts the species of tree, which is determined by the color of the box in the graph. The diameter of each individual tree is sorted into respective species and made into a plot on the graph, which shows the median size of the tree species (represented by the line within the box) within a larger range of diameters (represented by the box itself). 
+
+Any outliers in terms of size are positioned outside the box with lines attached if they are within the general vicinity of the box. This data helps reveal the size of each type of tree in that area, and compares them to the other species and their general diameters. In the case of the boxplot and the trees plotted in it, you might be able to have one tree species have a range of sizes that is larger than a different species, but have similar median diameters.  The data might also vary in other areas, as the graph represents only what was shown in the tree map.
+
+### Future Operations and Opportunities
+
+In this project, I gathered data from every tree of a certain size from within a small area of Blandford Nature Center. I covered nine species, with seven appearing in one area and two new species introducing themselves into other areas where I briefly walked. To cover that further, there is apparent evidence that even though Blandford is composed of one forest, the terrain changes and with those changes in terrain come changes in trees. This came from my observation of the American Basswood in the marsh that failed to appear in the part of the forest where I took most of my observations. Future users can prove this theory by visiting parts of the forest system where the terrain changes and taking an inventory of the trees in those respective areas. 
+
+Additionally, it took me a good amount of time to plot a small area of trees, but if a whole team were to do it, they could cover a good portion of the forest in a smaller amount of time, and one would eventually be able to make a tree map of the whole forest. They could also take note of a terrain map, and form a complete map of the types of land in the forest. With the data from these maps, someone could find out every type of tree in the whole forest, and what type of land the tree grew on.
+
+**Project conducted by:**  Isaac Hagedorn
